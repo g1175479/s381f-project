@@ -19,6 +19,10 @@
     max-width: 100%;
 }
 
+.form-style p{
+    word-wrap: break-word;
+}
+
 .form-style input[type="text"],
 .form-style input[type="file"],
 .form-style input[type="password"],

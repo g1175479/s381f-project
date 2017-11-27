@@ -86,15 +86,21 @@ app.post('/user/create', function(req,res) {
 			if (users.length > 0) {
 				res.render('msg_back', {title:'Create User Failed',msg:'Existed User. Try another user name.'});
 			} else {
-				var randomString = rand.generate(40);
-				var criteria2 = {"name":req.body.user.userid, "password": req.body.user.password, "api_key": randomString};
-				insertUser(db, criteria2, function(err) {
-					if (err) {
-						res.render('msg_back', {title:'Create User Failed',msg:'Networking Error. Please try again.'});
-					} else {
-						res.render('msg_href', {title:'Create User Success' ,msg:'Create user success, user name: '+req.body.user.userid, path:'/user/login', btnName:'Login Page'});
-					}
+				MongoClient.connect(mongourl, function(err,db) {
+					assert.equal(err,null);
+					console.log('Connected to MongoDB');
+					var randomString = rand.generate(40);
+					var criteria2 = {"name":req.body.user.userid, "password": req.body.user.password, "api_key": randomString};
+					insertUser(db, criteria2, function(err) {
+						if (err) {
+							res.render('msg_back', {title:'Create User Failed',msg:'Networking Error. Please try again.'});
+						} else {
+							res.render('msg_href', {title:'Create User Success' ,msg:'Create user success, user name: '+req.body.user.userid, path:'/user/login', btnName:'Login Page'});
+						}
+					});
 				});
+				db.close();
+				console.log('Disconnected MongoDB');
 			}
 		});
 		db.close();
@@ -112,14 +118,14 @@ app.get('/user/read', function(req,res){
 			assert.equal(err,null);
 			console.log('Connected to MongoDB');
 			findUsers(db,criteria,function(users) {
-				var api_key = users[0].api_key
-				res.render('msg_back', {title:'Your Info' ,msg:'Your API key: \n'+api_key});
+				var api_key = (users[0].api_key) ? users[0].api_key : "";
+				res.render('msg_back', {title:'Your Info' ,msg:'Your API key: '+api_key});
 			});
 			db.close();
 			console.log('Disconnected MongoDB');
 		});
 	} else {
-		res.render('msg_back', {title:'Forbidden' ,msg:'You have no permission to access.'+api_key});
+		res.render('msg_back', {title:'Forbidden' ,msg:'You have no permission to access.'});
 	}
 });
 
@@ -141,7 +147,7 @@ app.post('/restaurant/create',function(req,res) {
 	        	if (err) {
 					res.render('msg_back', {title:'Create Restaurant Failed',msg:'Networking Error. Please try again.'});
 				} else {
-					res.render('msg_href', {title:'Create Restaurant Success' ,msg:'Create restaurant success, _id: '+result.ops[0]._id,path:'/restaurant/create',btnName:'Create Another One'});
+					res.render('msg_href', {title:'Create Restaurant Success' ,msg:'Create restaurant success, _id: '+result.ops[0]._id,path:'/restaurant/detail/?restaurant_id='+result.ops[0].restaurant_id,btnName:'View Restaurant'});
 				}
 	        });
 			db.close();
@@ -261,7 +267,6 @@ app.post('/api/restaurant/create',function(req,res) {
 					console.log('Disconnected MongoDB');
 				});
 			});
-			
 			db.close();
 			console.log('Disconnected MongoDB');
 		});
@@ -288,6 +293,24 @@ app.get('/restaurant/read',function(req,res) {
 		});
 		db.close();
 		console.log('Disconnected MongoDB');
+	});
+})
+
+// curl "http://localhost:8099/api/restaurant/read/cuisine/Sichuan"
+app.get('/api/restaurant/read/:key/:value',function(req,res) {
+	var key = req.params.key;
+	var value = req.params.value;
+	console.log('key: '+key);
+	console.log('value: '+value);
+	var criteria = {};
+	criteria[key] = value;
+	console.log('criteria: '+JSON.stringify(criteria));
+	MongoClient.connect(mongourl, function(err,db) {
+        assert.equal(err,null);
+		findRestaurant(db,criteria,function(restaurants) {
+			res.writeHead(200,{"Content-Type" : "application/json"});
+			res.end(JSON.stringify(restaurants));
+		});
 	});
 })
 
@@ -326,7 +349,7 @@ app.get('/',function(req,res) {
 	var paths = [];
 	paths.push({"name": "Create", "path": "/restaurant/create"});
 	paths.push({"name": "View", "path": "/restaurant/read"});
-	paths.push({"name": "API", "path": "/user/read?user="+req.session.userid});
+	paths.push({"name": "API Key", "path": "/user/read?user="+req.session.userid});
 	res.render('index',{paths:paths, logoutPath:'/user/logout',title:'Restaurants Manager'})
 });
 
