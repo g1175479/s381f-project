@@ -1,0 +1,24 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="/css/form-style.css" type="text/css" rel="stylesheet">
+<title><%=title%></title>
+<script type="text/javascript">
+function href() {
+    window.location.assign('<%=logoutPath%>');
+}
+</script>
+</head>
+<body>
+<div class="form-style">
+<h1><%=title%></h1>
+<% for (i in paths) { %>
+	<span class="main_item"><input type="button" onclick="location.href='<%=paths[i].path%>';" value="<%=paths[i].name%>"/> <% } %></span>
+	
+<span class="warn">
+<button onclick="href()">Logout</button>
+</span>
+
+</div>
+</body>
+</html>

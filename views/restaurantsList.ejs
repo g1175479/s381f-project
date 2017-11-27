@@ -1,0 +1,17 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="/css/form-style.css" type="text/css" rel="stylesheet">
+<title><%=title%></title>
+</head>
+<body>
+<div class="form-style">
+<h1><%=title%></h1>
+<% for (i in restaurants) { %>
+	<% var j = parseInt(i)+1%>
+	<span class="item"><input type="button" onclick="location.href='/restaurant/detail?restaurant_id=<%=restaurants[i].restaurant_id%>';" value="<%=j%>. <%=restaurants[i].name%>"/></span> 
+<% } %>
+<input type="button" onclick="location.href='/';" value="Back" />
+</div>
+</body>
+</html>

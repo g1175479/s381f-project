@@ -1,0 +1,89 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="/css/form-style.css" type="text/css" rel="stylesheet">
+<title><%=r.name%></title>
+<script type="text/javascript">
+function href() {
+    window.location.assign('');
+}
+/*
+<% if (!(cu == r.owner)) { %>
+    window.onload=function(){
+        var inputs = document.getElementsByTagName("input");
+        for (var i = 0; i < inputs.length; i++) {
+                inputs[i].disabled = true;
+        }
+        var valids = document.getElementsByClassName('valid');
+        for (i in valids) {
+            valids[i].disabled = false;
+        }
+    }
+<% } %>
+*/
+</script>
+<style>
+</style>
+</head>
+<body>
+<div class="form-style">
+<form id='updateForm' action="/restaurant/update" method='POST' enctype="multipart/form-data"></form>
+	<h1><%=r.name%></h1>
+	<p><b>Restaurant Info</b></p>
+	<input type='hidden' name='restaurant_id' value="<%=r.restaurant_id%>" form="updateForm"/>
+    <input type='text' name='name' placeholder="Restaurant Name" value="<%=r.name%>" form="updateForm"/>
+    <input type='text' name='borough' placeholder="Borough" value="<%=r.borough%>" form="updateForm"/>
+    <input type='text' name='cuisine' placeholder="Cuisine" value="<%=r.cuisine%>" form="updateForm"/>
+    <p><b>Address </b></p>
+    <input type='text' name='street' placeholder="Street" value="<%=r.address.street%>" form="updateForm"/>
+    <input type='text' name='building' placeholder="Building" value="<%=r.address.building%>" form="updateForm"/>
+    <input type='text' name='zipcode' placeholder="Zip code" value="<%=r.address.zipcode%>" form="updateForm"/>
+    <p><b>Coordinate </b></p>
+    <% if (r.address.coord.length > 0) { %>
+    	<input type='text' name='lat' placeholder="Latitude" value="<%=r.address.coord[0]%>" form="updateForm"/>
+    	<input type='text' name='lon'/ placeholder="Longitude" value="<%=r.address.coord[1]%>" form="updateForm"/>
+    	<input type="button" class="valid" onclick="window.open('https://www.google.com/maps/?q=<%=r.address.coord[0]%>,<%=r.address.coord[1]%>');" value="Google Map" target="_blank"/>
+	<% } else { %>
+		<input type='text' name='lat' placeholder="Latitude" form="updateForm"/>
+	    <input type='text' name='lon'/ placeholder="Longitude" form="updateForm"/>
+    <% } %>
+    <p><b>Rating</b></p>
+    <% if (r.grades.length > 0) { %>
+    	<% for (i in r.grades) { %>
+			<% if (r.grades[i].user == cu) { %>
+				<p>You rated <%=r.grades[i].score%> mark(s).</p>
+			<% } else { %>
+				<p><%=r.grades[i].user%> rated <%=r.grades[i].score%> mark(s).</p>
+			<% } %>
+    	<% } %>
+	<% } else { %>
+		<p>No any gradings now</p>
+	<% } %>
+    <% if (!(isGraded)) { %>
+        <p><b>Your grading to this restaurant(1-10)</b></p>
+        <form id="scoreForm" action='/restaurant/rate' method='POST'></form>
+            <input class='valid' type='text' name='score' placeholder="Score" form="scoreForm"/>
+            <input class='valid' type="hidden" name="restaurant_id" value="<%=r.restaurant_id%>" form="scoreForm"/>
+            <input class='valid' type="hidden" name="user" value="<%=cu%>" form="scoreForm"/>
+            <input class='valid' type="submit" value="Rate" form="scoreForm"/>   
+    <% } %>
+    <br>
+    <p><b>Photo</b></p>
+    <% if (r.photo && r.photo_mimetype) { %>
+		<img src='data:"<%=r.photo_mimetype%>";base64, <%=r.photo%>'/>
+		<p><b>Mime Type: <%=r.photo_mimetype%></b></p>
+	<% } else {%>
+        <p>This restaurant does not have photo yet.</p>
+    <% } %>
+    <% if (r.owner == cu) { %>
+        <input type='file' name='photo' form="updateForm"/>
+        <form id="deleteForm" action='/restaurant/delete' method='POST'></form>
+        <input class="valid" type="hidden" name="restaurant_id" value="<%=r.restaurant_id%>" form="deleteForm"/>
+		<p><input class="valid" type="submit" value="Save Change" form="updateForm"/></p>
+        <span class="warn"><p><input class="valid" type="submit" value="Delete Restaurant" form="deleteForm"/></p></span>
+	<% } %>
+
+<input class="valid" type="button" onclick="location.href='/restaurant/read';" value="Back" />
+</div>
+</body>
+</html>

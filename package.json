@@ -1,0 +1,20 @@
+{
+    "name": "server",
+    "description": "S381F-Project",
+    "author": "Raymond SO <rso@ouhk.edu.hk>",
+    "version": "0.0.1",
+    "dependencies": {
+        "express": "*",
+        "express-fileupload": "latest",
+        "formidable": "latest",
+        "cookie-session": "latest",
+        "body-parser": "latest",
+        "random-key" : "latest",
+        "ejs": "*",
+        "mongodb": "latest"
+    },
+    "engine": "node >= 0.10.0",
+    "scripts": {
+        "start": "node server"
+    }
+}

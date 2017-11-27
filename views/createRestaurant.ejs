@@ -1,0 +1,39 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="/css/form-style.css" type="text/css" rel="stylesheet">
+<title>Create Restaurant</title>
+<script>
+function goBack() {
+    window.history.back();
+}
+</script>
+</head>
+<body>
+<div class="form-style">
+<h1>Create Restaurant</h1>
+
+<form action="<%=path%>" method='POST' enctype="multipart/form-data">
+	<p><b>Restaurant Info</b></p>
+    <input type='text' name='name' placeholder="Restaurant Name"/>
+    <input type='text' name='borough' placeholder="Borough"/>
+    <input type='text' name='cuisine' placeholder="Cuisine"/>
+    <p><b>Address </b></p>
+    <input type='text' name='street' placeholder="Street"/>
+    <input type='text' name='building' placeholder="Building"/>
+    <input type='text' name='zipcode' placeholder="Zip code"/>
+    <p><b>Coordinate </b></p>
+    <input type='text' name='lat' placeholder="Latitude"/>
+    <input type='text' name='lon'/ placeholder="Longitude">
+    <p><b>Your grading to this restaurant(1-10)</b></p>
+    <input type='text' name='score' placeholder="Score"/>
+    <p><b>Photo </b></p>
+    <input type='file' name='photo' />
+	<input type="submit" value="Submit">
+</form>
+
+<input type="button" onclick="location.href='/';" value="Back"/>
+</div>
+
+</body>
+</html>
