@@ -97,12 +97,30 @@ app.post('/user/create', function(req,res) {
 				});
 			}
 		});
+		db.close();
+		console.log('Disconnected MongoDB');
 	});
 });
 
 app.get('/user/read', function(req,res){
-	//res.sendFile(__dirname + '/views/Register.html');
-	//res.render('userForm',{title:'Register', path:'/user/create'});
+	if (!(isLogin(req))){
+		res.redirect('/login');
+	}
+	if (req.query.user == req.session.userid) {
+		var criteria = {"name": req.session.userid};
+		MongoClient.connect(mongourl, function(err,db) {
+			assert.equal(err,null);
+			console.log('Connected to MongoDB');
+			findUsers(db,criteria,function(users) {
+				var api_key = users[0].api_key
+				res.render('msg_back', {title:'Your Info' ,msg:'Your API key: \n'+api_key});
+			});
+			db.close();
+			console.log('Disconnected MongoDB');
+		});
+	} else {
+		res.render('msg_back', {title:'Forbidden' ,msg:'You have no permission to access.'+api_key});
+	}
 });
 
 app.get('/restaurant/create',function(req,res) {
@@ -205,32 +223,45 @@ app.post('/restaurant/delete', function(req,res){
 	});
 })
 
-// curl -H "Content-Type: application/json" -d '{"name":"sss","borough":"","cuisine":"","photo":"","photo_mimetype":"","address":{"street":"","building":"","zipcode":"","coord":["sss",""]},"grades":{"score":""}}' http://localhost:8099/api/restaurant/create
+// curl -F "api_key=nybVmqzdxxZ8E3XeUBm3SuBb7DWFmgvwoeOFdeVg" -F "name=rich all wong restaurant" -F "street=test" -F "score=2" -F "lat=1" -F "photo=@C:\Users\common\Downloads\rich.jpg" "http://localhost:8099/api/restaurant/create"
 app.post('/api/restaurant/create',function(req,res) {
-	//console.log('post data: '+JSON.stringify(req.body));
+	console.log('post data: '+JSON.stringify(req.body));
 	//console.log('post data: '+JSON.stringify(req.files));
-	var owner = "Marco";
-	if (req.body.name && owner) {
+	if (req.body.name && req.body.api_key) {
 		var file = (req.files) ? req.files : "";
-		var restaurant = getFormattedRestaurant(req.body,file, owner);
-		console.log('restaurant: '+JSON.stringify(restaurant));
+		var criteria = {"api_key": req.body.api_key};
+		
+		// find user's name by api key
 		MongoClient.connect(mongourl, function(err,db) {
 			assert.equal(err,null);
 			console.log('Connected to MongoDB');
-			insertRestaurant(db, restaurant, function(err, result){
-				if (err) {
-					var response = {};
-					response['status'] = 'failed';
-					res.writeHead(200,{"Content-Type" : "application/json"});
-					res.end(JSON.stringify(response));
-				} else {
-					var response = {};
-					response['status'] = 'ok'; 
-					response['_id'] = result.ops[0]._id;
-					res.writeHead(200,{"Content-Type" : "application/json"});
-					res.end(JSON.stringify(response));
-				}
+			findUsers(db, criteria,function(users) {
+				var owner = users[0].name;
+				console.log('POST/ /api/restaurant/create/ owner: '+owner);
+				var restaurant = getFormattedRestaurant(req.body,file, owner);
+				console.log('restaurant: '+JSON.stringify(restaurant));
+				MongoClient.connect(mongourl, function(err,db) {
+					assert.equal(err,null);
+					console.log('Connected to MongoDB');
+					insertRestaurant(db, restaurant, function(err, result){
+						if (err) {
+							var response = {};
+							response['status'] = 'failed';
+							res.writeHead(200,{"Content-Type" : "application/json"});
+							res.end(JSON.stringify(response));
+						} else {
+							var response = {};
+							response['status'] = 'ok'; 
+							response['_id'] = result.ops[0]._id;
+							res.writeHead(200,{"Content-Type" : "application/json"});
+							res.end(JSON.stringify(response));
+						}
+					});
+					db.close();
+					console.log('Disconnected MongoDB');
+				});
 			});
+			
 			db.close();
 			console.log('Disconnected MongoDB');
 		});
@@ -295,6 +326,7 @@ app.get('/',function(req,res) {
 	var paths = [];
 	paths.push({"name": "Create", "path": "/restaurant/create"});
 	paths.push({"name": "View", "path": "/restaurant/read"});
+	paths.push({"name": "API", "path": "/user/read?user="+req.session.userid});
 	res.render('index',{paths:paths, logoutPath:'/user/logout',title:'Restaurants Manager'})
 });
 
@@ -306,7 +338,7 @@ function findUsers(db,criteria,callback) {
 		if (doc != null) {
 			users.push(doc);
 		} else {
-			callback(users);
+			callback(users, err);
 		}
 	});
 }

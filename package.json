@@ -9,7 +9,7 @@
         "formidable": "latest",
         "cookie-session": "latest",
         "body-parser": "latest",
-        "random-key" : "latest",
+        "random-key": "latest",
         "ejs": "*",
         "mongodb": "latest"
     },
