@@ -198,7 +198,7 @@ app.post('/restaurant/update', function(req,res){
 		assert.equal(err,null);
 		var id = req.body.restaurant_id;
 		
-		updateRestaurant(db,id,restaurant,function(err) {
+		updateRestaurant(db,id,restaurant,req,function(err) {
 			if (err) {
 				res.render('msg_href', {title:'Edit Failed' ,msg:'Edit restaurant failed.',path:'/restaurant/detail?restaurant_id='+id,btnName:'Back'});
 			} else {
@@ -213,7 +213,7 @@ app.post('/restaurant/update', function(req,res){
 
 app.post('/restaurant/delete', function(req,res){
 	var id = req.body.restaurant_id;
-	var criteria = {"restaurant_id":req.body.restaurant_id};
+	var criteria = {"restaurant_id":req.body.restaurant_id,"owner":req.session.userid};
 	MongoClient.connect(mongourl, function(err,db) {
 		console.log('Connected to MongoDB');
 		assert.equal(err,null);
@@ -342,15 +342,53 @@ app.get('/restaurant/detail',function(req,res){
 	});
 })
 
-app.get('/',function(req,res) {
+app.get('/restaurant/filter',function(req,res) {
 	if (!(isLogin(req))){
 		res.redirect('/user/login');
 	}
-	var paths = [];
-	paths.push({"name": "Create", "path": "/restaurant/create"});
-	paths.push({"name": "View", "path": "/restaurant/read"});
-	paths.push({"name": "API Key", "path": "/user/read?user="+req.session.userid});
-	res.render('index',{paths:paths, logoutPath:'/user/logout',title:'Restaurants Manager'})
+	res.render('filterRestaurant', {path:'/restaurant/filter'} );
+});
+
+app.post('/restaurant/filter',function(req,res) {
+	if (!(isLogin(req))){
+		res.redirect('/user/login');
+	}
+	//console.log('posted data:' +JSON.stringify(req.body));
+
+	var criteria = getFilterCriteria(req.body);
+	var projection = {"restaurant_id":1,"name":1,"_id":0};
+	//var criteria = {"cuisine":"Sichuan", "borough":"Hong Kong"};
+
+	console.log('criteria: '+JSON.stringify(criteria));
+
+	MongoClient.connect(mongourl, function(err,db) {
+        assert.equal(err,null);
+        console.log('Connected to MongoDB');
+       
+		findRestaurantsName(db, criteria, projection, function(restaurants){
+			if (restaurants.length > 0) {
+				res.render('restaurantsList',{title:'Restaurants',restaurants:restaurants});
+			} else {
+				res.render('msg_back',{title:'No Restaurant Match', msg:'Cannot find any restaurant. Please try another criteria.'});
+			}
+		});
+
+		db.close();
+		console.log('Disconnected MongoDB');
+	});
+})
+
+app.get('/',function(req,res) {
+	if (!(isLogin(req))){
+		res.redirect('/user/login');
+	} else {
+		var paths = [];
+		paths.push({"name": "Create", "path": "/restaurant/create"});
+		paths.push({"name": "View", "path": "/restaurant/read"});
+		paths.push({"name": "Filter","path":"/restaurant/filter"});
+		paths.push({"name": "API Key", "path": "/user/read?user="+req.session.userid});
+		res.render('index',{paths:paths, logoutPath:'/user/logout',title:'Restaurants Manager'})
+	}
 });
 
 function findUsers(db,criteria,callback) {
@@ -393,9 +431,9 @@ function insertRestaurantGrade(db,id,score,user,callback) {
 	);
 }
 
-function updateRestaurant(db,id,restaurant,callback) {
+function updateRestaurant(db,id,restaurant,req,callback) {
 	db.collection('restaurants').findAndModify(
-		{"restaurant_id":id},
+		{"restaurant_id":id,"owner":req.session.userid},
 		[],
 		{$set: restaurant},
 		{},
@@ -436,6 +474,38 @@ function findRestaurant(db,criteria,callback) {
 			callback(restaurants);
 		}
 	});
+}
+
+/*
+function findFilterRestaurantName(db, criteria, projection, aggregation, callback) {
+	var cursor = db.collection('restaurants').aggregate([
+		{$unwind: "$grades"},
+		{group: {
+			_id: "$name",
+
+		}}
+		]);
+	}
+
+	cursor.each(function(err,doc) {
+		assert.equal(err,null);
+		if (doc != null) {
+			restaurants.push(doc);
+		} else {
+			callback(restaurants);
+		}
+	});
+}
+*/
+
+// Match any one
+function findRestaurantMatchAnyOne(db,criteria,callback) {
+
+}
+
+// Match all
+function findRestaurantMatchAll(db,criteria,callback) {
+
 }
 
 function isLogin(req) {
@@ -526,6 +596,112 @@ function getFormattedRestaurantForUpdate(body, files) {
 	}
 	
 	return restaurant;
+}
+
+function getFilterCriteria(body){
+	/*
+	match:
+		0 = And
+		1 = Or
+	*/
+	var criteria = {};
+	if (body.match == 0) {
+		// match all
+		if (body.name) {
+			criteria['name'] = body.name;
+		}
+		if (body.borough) {
+			criteria['borough'] = body.borough;
+		}
+		if (body.cuisine) {
+			criteria['cuisine'] = body.cuisine;
+		}
+		if (body.street || body.building || body.zipcode) {
+			criteria['address'] = {};
+			if (body.street) {
+				criteria['address']['street'] = body.street;
+			}
+			if (body.building) {
+				criteria['address']['building'] = body.building;
+			}
+			if (body.zipcode) {
+				criteria['address']['zipcode'] = body.zipcode;
+			}
+		}
+		if (body.owner) {
+			criteria['owner'] = body.owner;
+		}
+
+		/*
+		scoreCompare:
+			0 = Equals To
+			1 = Greater Than
+			2 = Smaller Than
+		*/
+		if (body.score || body.user) {
+			criteria['grades'] = {$elemMatch:{}};
+			if (body.score) {
+				var score = parseInt(body.score);
+				if (body.scoreCompare == '0') {
+					criteria.grades.$elemMatch.score = score;
+				} else if (body.scoreCompare == '1') {
+					criteria.grades.$elemMatch.score = {$gt:score};
+				} else if (body.scoreCompare == '2') {
+					criteria.grades.$elemMatch.score = {$lt:score};
+				}
+			}
+			if (body.user) {
+				criteria.grades.$elemMatch.user = body.user;
+			}
+		}
+	} else {
+		// match any one
+		criteria['$or'] = [];
+		if (body.name) {
+			criteria.$or.push({"name":body.name});
+		}
+		if (body.borough) {
+			criteria.$or.push({"borough":body.borough});
+		}
+		if (body.cuisine) {
+			criteria.$or.push({"cuisine":body.cuisine});
+		}
+		if (body.street || body.building || body.zipcode) {
+			if (body.street) {
+				criteria.$or.push({"address":{"street":body.street}});
+			}
+			if (body.building) {
+				criteria.$or.push({"address":{"building":body.building}});
+			}
+			if (body.zipcode) {
+				criteria.$or.push({"address":{"zipcode":body.zipcode}});
+			}
+		}
+		if (body.owner) {
+			criteria.$or.push({"owner": body.owner});
+		}
+
+		/*
+		scoreCompare:
+			0 = Equals To
+			1 = Greater Than
+			2 = Smaller Than
+		*/
+		if (body.score) {
+			var score = parseInt(body.score);
+			if (body.scoreCompare == '0') {
+				criteria.$or.push({"grades": {$elemMatch: {"score" : score}}});
+			} else if (body.scoreCompare == '1') {
+				criteria.$or.push({"grades": {$elemMatch: {"score" : {$gt: score}}}});
+			} else if (body.scoreCompare == '2') {
+				criteria.$or.push({"grades": {$elemMatch: {"score" : {$gt: score}}}});
+			}
+		}
+		if (body.user) {
+			criteria.$or.push({"grades":{$elemMatch:{"user":body.user}}});
+		}
+	}
+	return criteria;
 }
 
 /*

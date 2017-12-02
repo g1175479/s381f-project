@@ -26,7 +26,7 @@
 .form-style input[type="text"],
 .form-style input[type="file"],
 .form-style input[type="password"],
-.form-style select 
+.form-style select
 {
     -webkit-transition: all 0.30s ease-in-out;
     -moz-transition: all 0.30s ease-in-out;
