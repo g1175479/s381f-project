@@ -367,7 +367,7 @@ app.post('/restaurant/filter',function(req,res) {
        
 		findRestaurantsName(db, criteria, projection, function(restaurants){
 			if (restaurants.length > 0) {
-				res.render('restaurantsList',{title:'Restaurants',restaurants:restaurants});
+				res.render('restaurantsList',{title:'Filtered Restaurants',restaurants:restaurants});
 			} else {
 				res.render('msg_back',{title:'No Restaurant Match', msg:'Cannot find any restaurant. Please try another criteria.'});
 			}
