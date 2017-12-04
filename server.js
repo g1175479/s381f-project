@@ -694,7 +694,7 @@ function getFilterCriteria(body){
 			} else if (body.scoreCompare == '1') {
 				criteria.$or.push({"grades": {$elemMatch: {"score" : {$gt: score}}}});
 			} else if (body.scoreCompare == '2') {
-				criteria.$or.push({"grades": {$elemMatch: {"score" : {$gt: score}}}});
+				criteria.$or.push({"grades": {$elemMatch: {"score" : {$lt: score}}}});
 			}
 		}
 		if (body.user) {
